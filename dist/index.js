@@ -43746,8 +43746,8 @@ function getBodyDependencyUsage() {
             return {
                 type: "java",
                 java: {
-                    group_id: core.getInput('releaseBodyDependencyJavaArtifactId') || undefined,
-                    artifact_id: core.getInput('releaseBodyDependencyJavaGroupId') || undefined,
+                    group_id: core.getInput('releaseBodyDependencyJavaGroupId') || undefined,
+                    artifact_id: core.getInput('releaseBodyDependencyJavaArtifactId') || undefined,
                     version: core.getInput('releaseBodyDependencyJavaVersion') || undefined,
                     maven_repo: core.getInput('releaseBodyDependencyJavaMavenRepo') || undefined
                 }
