@@ -1,8 +1,8 @@
 import { Embed, Webhook } from '@vermaysha/discord-webhook'
-import { Inputs } from '../types/inputs';
-import { ReleaseResponse } from '../types/release';
-import { Repo } from '../types/repo';
-import { OctokitApi } from '../types/auth';
+import { Inputs } from '../types/inputs.js';
+import { ReleaseResponse } from '../types/release.js';
+import { Repo } from '../types/repo.js';
+import { OctokitApi } from '../types/auth.js';
 
 export async function sendWebhook(inp: {inputs: Inputs, api: OctokitApi, repoData: Repo, releaseResponse: ReleaseResponse | null}) {
     const { inputs, api, repoData, releaseResponse } = inp;

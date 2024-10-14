@@ -1,6 +1,6 @@
 import * as core from '@actions/core'
-import { ReleaseResponse } from "../types/release";
-import { Inputs } from '../types/inputs';
+import { ReleaseResponse } from "../types/release.js";
+import { Inputs } from '../types/inputs.js';
 
 export async function setOutputs(inp: {release: ReleaseResponse | null, inputs: Inputs}): Promise<void> {
     const { release, inputs } = inp;

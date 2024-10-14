@@ -1,5 +1,5 @@
-import { BaseRepo } from "../types/repo";
-import * as parse from '../util/parse';
+import { BaseRepo } from "../types/repo.js";
+import * as parse from '../util/parse.js';
 import * as core from '@actions/core'
 
 export function getRepoData(): BaseRepo {

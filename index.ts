@@ -1,12 +1,12 @@
 import * as core from '@actions/core'
-import { getInputs } from './src/action/inputs';
-import { writeRelease } from './src/action/release';
-import { getRepoData } from './src/action/repo';
-import { storeReleaseData } from './src/action/store';
-import { uploadFiles } from './src/action/files';
-import { authGithubApp } from './src/action/auth';
-import { sendWebhook } from './src/action/hook';
-import { setOutputs } from './src/action/output';
+import { getInputs } from './src/action/inputs.js';
+import { writeRelease } from './src/action/release.js';
+import { getRepoData } from './src/action/repo.js';
+import { storeReleaseData } from './src/action/store.js';
+import { uploadFiles } from './src/action/files.js';
+import { authGithubApp } from './src/action/auth.js';
+import { sendWebhook } from './src/action/hook.js';
+import { setOutputs } from './src/action/output.js';
 
 async function run(): Promise<void> {
     try {

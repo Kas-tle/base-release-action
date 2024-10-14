@@ -1,12 +1,12 @@
 import path from "path";
 import fs from "fs";
-import * as parse from "../util/parse";
-import { Inputs } from "../types/inputs";
-import { ReleaseResponse } from "src/types/release";
-import { Repo } from "src/types/repo";
-import { FileInfo, UploadInfo } from "../types/files";
+import * as parse from "../util/parse.js";
+import { Inputs } from "../types/inputs.js";
+import { ReleaseResponse } from "src/types/release.js";
+import { Repo } from "src/types/repo.js";
+import { FileInfo, UploadInfo } from "../types/files.js";
 import { Readable } from "stream";
-import { OctokitApi } from "../types/auth";
+import { OctokitApi } from "../types/auth.js";
 
 export async function uploadFiles(inp: {api: OctokitApi, inputs: Inputs, release: ReleaseResponse | null, repoData: Repo}) {
     const { api, inputs, release, repoData } = inp;

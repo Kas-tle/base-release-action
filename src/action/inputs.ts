@@ -1,12 +1,13 @@
 import * as core from '@actions/core'
 import fs from 'fs';
-import { Inputs, PreviousRelease } from '../types/inputs';
-import * as parse from '../util/parse';
-import { Repo } from '../types/repo';
+import { Inputs, PreviousRelease } from '../types/inputs.js';
+import * as parse from '../util/parse.js';
+import { Repo } from '../types/repo.js';
 import os from 'os';
 import path from 'path';
-import { OctokitApi } from '../types/auth';
+import { OctokitApi } from '../types/auth.js';
 import markdownEscape from 'markdown-escape';
+import { globSync } from 'glob';
 
 export async function getInputs(inp: {api: OctokitApi, repoData: Repo}): Promise<Inputs> {
     const { api, repoData } = inp;
@@ -47,18 +48,42 @@ async function getPrevRelease(inp: {api: OctokitApi, repoData: Repo}): Promise<P
 }
 
 function getFiles(): Inputs.File[] {
-    const files = core.getInput('files', { required: true });
+    const files = core.getInput('files');
 
-    return parse.parseMultiInput(files).map(file => {
+    if (files === '') {
+        return [];
+    }
+
+    const inputFiles: Inputs.File[] = [];
+
+    for (const file of parse.parseMultiInput(files)) {
+        let label: string;
+        let filePath: string;
+
         if (!file.includes(':')) {
-            return { label: path.parse(file).name.toLowerCase(), path: file };
+            label = path.parse(file).name.toLowerCase();
+            filePath = file;
+        } else {
+            label = file.split(':')[0];
+            filePath = file.split(':').slice(1).join(':');
         }
 
-        const [label, ...paths] = file.split(':');
+        const files = globSync(filePath);
 
-        console.log(`Using label ${label} for file path ${paths.join(':')}`);
-        return { label, path: paths.join(':') };
-    });
+        if (files.length > 1) {
+            for (const file of files) {
+                const fileName = path.parse(file).name;
+                inputFiles.push({ label: `${label}-${fileName}`, path: file });
+            }
+        } else if (files.length === 1) {
+            inputFiles.push({ label, path: files[0] });
+        } else {
+            console.log(`File ${label} not found at ${filePath}`);
+            core.setFailed(`File ${label} not found at ${filePath}`);
+        }
+    }
+
+    return inputFiles;
 }
 
 async function getRelease(inp: {api: OctokitApi, changes: Inputs.Change[], tag: Inputs.Tag, repoData: Repo, success: boolean}): Promise<Inputs.Release> {
@@ -159,9 +184,9 @@ async function getChanges(inp: {api: OctokitApi, prevRelease: PreviousRelease, r
             const timestamp = c.commit.committer && c.commit.committer.date ? new Date(c.commit.committer.date).getTime().toString() : '';
             const author = c.author ? c.author.login : '';
             const coauthors = c.commit.message.match(/Co-authored-by: (.*) <(.*)>/g)
-                ?.map(coauthor => coauthor.replace(/Co-authored-by: (.*) <(.*)>/, '$1'))
+                ?.map((coauthor) => coauthor.replace(/Co-authored-by: (.*) <(.*)>/, '$1'))
                 .filter((value, index, array) => array.indexOf(value) === index)
-                .filter(coauthor => coauthor !== '') ?? [];
+                .filter((coauthor) => coauthor !== '') ?? [];
     
             changes.push({ commit, summary, message, timestamp, author, coauthors });
         }

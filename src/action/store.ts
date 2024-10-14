@@ -1,7 +1,7 @@
-import { OctokitApi } from '../types/auth';
+import { OctokitApi } from '../types/auth.js';
 import core from '@actions/core';
-import { Inputs } from "../types/inputs";
-import { Repo } from "../types/repo";
+import { Inputs } from "../types/inputs.js";
+import { Repo } from "../types/repo.js";
 import { isDeepStrictEqual } from 'util';
 
 export async function storeReleaseData(inp: {inputs: Inputs, api: OctokitApi, repoData: Repo}) {
