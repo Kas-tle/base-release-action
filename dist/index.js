@@ -43477,7 +43477,8 @@ function getFiles() {
 async function getRelease(inp) {
     const { api, changes, tag, repoData, success } = inp;
     const { owner, repo, branch } = repoData;
-    const body = await getReleaseBody({ repoData, changes });
+    const body_dependency_usage = getBodyDependencyUsage();
+    const body = await getReleaseBody({ repoData, changes, usageExamples: body_dependency_usage, tag });
     const prerelease = await getPreRelease({ repoData });
     const name = getName({ tag, branch });
     const draft = core.getBooleanInput('draftRelease');
@@ -43490,7 +43491,7 @@ async function getRelease(inp) {
     const metadata = core.getBooleanInput('saveMetadata');
     const update_release_data = core.getBooleanInput('updateReleaseData');
     console.log(`Using release name ${name} with prerelease: ${prerelease}, draft: ${draft}, generate release notes: ${generate_release_notes}, discussion category: ${discussion_category_name}, make latest: ${make_latest}, include release info: ${info}`);
-    return { name, body, prerelease, draft, generate_release_notes, discussion_category_name, make_latest, info, hook, enabled, metadata, update_release_data };
+    return { name, body, prerelease, draft, generate_release_notes, discussion_category_name, make_latest, info, hook, enabled, metadata, update_release_data, body_dependency_usage };
 }
 async function getSuccess(inp) {
     const { api, repoData } = inp;
@@ -43571,18 +43572,19 @@ async function getChanges(inp) {
     }
 }
 async function getReleaseBody(inp) {
-    const { repoData, changes } = inp;
+    const { repoData, changes, usageExamples, tag } = inp;
     const bodyPath = core.getInput('releaseBodyPath');
     if (!external_fs_default().existsSync(bodyPath)) {
         // Generate release body ourselves
         if (changes.length === 0) {
             return '';
         }
+        let body = '';
         const { owner, repo, url } = repoData;
         const firstCommit = changes[0].commit.slice(0, 7);
         const lastCommit = changes[changes.length - 1].commit.slice(0, 7);
         const diffURL = `${url}/${owner}/${repo}/compare/${firstCommit}^...${lastCommit}`;
-        let changelog = `## Changes: [\`${firstCommit}...${lastCommit}\`](${diffURL})${(external_os_default()).EOL}`;
+        body += `## Changes: [\`${firstCommit}...${lastCommit}\`](${diffURL})${(external_os_default()).EOL}`;
         const changeLimit = core.getInput('releaseChangeLimit');
         let truncatedChanges = 0;
         if (isPosInteger(changeLimit)) {
@@ -43604,12 +43606,88 @@ async function getReleaseBody(inp) {
                     break;
             }
             const sha = change.commit.slice(0, 7);
-            changelog += `- ${markdown_escape_default()(change.summary)} ([\`${sha}\`](${url}/${owner}/${repo}/commit/${sha})) by ${markdown_escape_default()(authors)}${(external_os_default()).EOL}`;
+            body += `- ${markdown_escape_default()(change.summary)} ([\`${sha}\`](${url}/${owner}/${repo}/commit/${sha})) by ${markdown_escape_default()(authors)}${(external_os_default()).EOL}`;
         }
         if (truncatedChanges > 0) {
-            changelog += `... and ${truncatedChanges} more${(external_os_default()).EOL}`;
+            body += `... and ${truncatedChanges} more${(external_os_default()).EOL}`;
         }
-        return changelog;
+        if (usageExamples.type !== 'none') {
+            switch (usageExamples.type) {
+                case 'java':
+                    if (!usageExamples.java)
+                        break;
+                    if (!usageExamples.java.group_id || !usageExamples.java.artifact_id)
+                        break;
+                    body += `## Usage${(external_os_default()).EOL}`;
+                    let { group_id, artifact_id, version: javaVersion, maven_repo } = usageExamples.java;
+                    if (!javaVersion) {
+                        javaVersion = tag.base;
+                    }
+                    ;
+                    body += `### Gradle (Kotlin DSL)${(external_os_default()).EOL}`;
+                    body += '```kotlin' + (external_os_default()).EOL;
+                    if (maven_repo) {
+                        body += `repositories {` + (external_os_default()).EOL;
+                        body += `    maven("${maven_repo}")` + (external_os_default()).EOL;
+                        body += `}` + (external_os_default()).EOL;
+                        body += (external_os_default()).EOL;
+                    }
+                    body += `implementation("${group_id}:${artifact_id}:${javaVersion}")` + (external_os_default()).EOL;
+                    body += '```' + (external_os_default()).EOL;
+                    body += `### Gradle (Groovy)${(external_os_default()).EOL}`;
+                    body += '```groovy' + (external_os_default()).EOL;
+                    if (maven_repo) {
+                        body += `repositories {` + (external_os_default()).EOL;
+                        body += `    maven { url "${maven_repo}" }` + (external_os_default()).EOL;
+                        body += `}` + (external_os_default()).EOL;
+                        body += (external_os_default()).EOL;
+                    }
+                    body += `implementation '${group_id}:${artifact_id}:${javaVersion}'` + (external_os_default()).EOL;
+                    body += '```' + (external_os_default()).EOL;
+                    body += `### Maven${(external_os_default()).EOL}`;
+                    body += '```xml' + (external_os_default()).EOL;
+                    if (maven_repo) {
+                        body += `<repositories>` + (external_os_default()).EOL;
+                        body += `    <repository>` + (external_os_default()).EOL;
+                        body += `        <id>${repoData.owner}</id>` + (external_os_default()).EOL;
+                        body += `        <url>${maven_repo}</url>` + (external_os_default()).EOL;
+                        body += `    </repository>` + (external_os_default()).EOL;
+                        body += `</repositories>` + (external_os_default()).EOL;
+                        body += (external_os_default()).EOL;
+                    }
+                    body += `<dependency>` + (external_os_default()).EOL;
+                    body += `    <groupId>${group_id}</groupId>` + (external_os_default()).EOL;
+                    body += `    <artifactId>${artifact_id}</artifactId>` + (external_os_default()).EOL;
+                    body += `    <version>${javaVersion}</version>` + (external_os_default()).EOL;
+                    body += `</dependency>` + (external_os_default()).EOL;
+                    body += '```' + (external_os_default()).EOL;
+                    break;
+                case 'nodejs':
+                    if (!usageExamples.nodejs)
+                        break;
+                    if (!usageExamples.nodejs.package || !usageExamples.nodejs.var_name)
+                        break;
+                    body += `## Usage${(external_os_default()).EOL}`;
+                    let { package: packageName, version: nodejsVersion, var_name } = usageExamples.nodejs;
+                    if (!nodejsVersion) {
+                        nodejsVersion = tag.base;
+                    }
+                    ;
+                    body += `### Install${(external_os_default()).EOL}`;
+                    body += '```bash' + (external_os_default()).EOL;
+                    body += `npm install ${packageName}@${nodejsVersion}` + (external_os_default()).EOL;
+                    body += `yarn add ${packageName}@${nodejsVersion}` + (external_os_default()).EOL;
+                    body += `pnpm add ${packageName}@${nodejsVersion}` + (external_os_default()).EOL;
+                    body += '```' + (external_os_default()).EOL;
+                    body += `### Import${(external_os_default()).EOL}`;
+                    body += '```js' + (external_os_default()).EOL;
+                    body += `const ${var_name} = require('${packageName}');` + (external_os_default()).EOL;
+                    body += `import ${var_name} from '${packageName}';` + (external_os_default()).EOL;
+                    body += '```' + (external_os_default()).EOL;
+                    break;
+            }
+        }
+        return body;
     }
     return external_fs_default().readFileSync(bodyPath, { encoding: 'utf-8' });
 }
@@ -43660,6 +43738,35 @@ function getMakeLatest(inp) {
             return undefined;
     }
     return make_latest;
+}
+function getBodyDependencyUsage() {
+    const dependency_usage_examples = core.getInput('releaseBodyDependencyUsage');
+    switch (dependency_usage_examples) {
+        case "java":
+            return {
+                type: "java",
+                java: {
+                    group_id: core.getInput('releaseBodyDependencyJavaArtifactId') || undefined,
+                    artifact_id: core.getInput('releaseBodyDependencyJavaGroupId') || undefined,
+                    version: core.getInput('releaseBodyDependencyJavaVersion') || undefined,
+                    maven_repo: core.getInput('releaseBodyDependencyJavaMavenRepo') || undefined
+                }
+            };
+        case "nodejs":
+            return {
+                type: "nodejs",
+                nodejs: {
+                    package: core.getInput('releaseBodyDependencyNodejsPackage') || undefined,
+                    version: core.getInput('releaseBodyDependencyNodejsVersion') || undefined,
+                    var_name: core.getInput('releaseBodyDependencyNodejsVarName') || undefined
+                }
+            };
+        case "none":
+        default:
+            return {
+                type: "none"
+            };
+    }
 }
 
 ;// CONCATENATED MODULE: ./src/action/release.ts
