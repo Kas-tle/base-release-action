@@ -41,6 +41,20 @@ export namespace Inputs {
         readonly hook: string | undefined;
         readonly metadata: boolean;
         readonly update_release_data: boolean;
+        readonly body_dependency_usage: {
+            type: "java" | "nodejs" | "none";
+            java?: {
+                group_id?: string;
+                artifact_id?: string;
+                version?: string;
+                maven_repo?: string;
+            };
+            nodejs?: {
+                package?: string;
+                version?: string;
+                var_name?: string;
+            };
+        }; 
     }
 }
 

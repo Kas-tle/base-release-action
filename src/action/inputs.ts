@@ -91,7 +91,8 @@ async function getRelease(inp: {api: OctokitApi, changes: Inputs.Change[], tag: 
 
     const { owner, repo, branch } = repoData;
 
-    const body = await getReleaseBody({repoData, changes});
+    const body_dependency_usage = getBodyDependencyUsage();
+    const body = await getReleaseBody({repoData, changes, usageExamples: body_dependency_usage, tag});
     const prerelease = await getPreRelease({repoData});
     const name = getName({tag, branch});
     const draft = core.getBooleanInput('draftRelease');
@@ -105,7 +106,7 @@ async function getRelease(inp: {api: OctokitApi, changes: Inputs.Change[], tag: 
     const update_release_data = core.getBooleanInput('updateReleaseData');
 
     console.log(`Using release name ${name} with prerelease: ${prerelease}, draft: ${draft}, generate release notes: ${generate_release_notes}, discussion category: ${discussion_category_name}, make latest: ${make_latest}, include release info: ${info}`);
-    return { name, body, prerelease, draft, generate_release_notes, discussion_category_name, make_latest, info, hook, enabled, metadata, update_release_data };
+    return { name, body, prerelease, draft, generate_release_notes, discussion_category_name, make_latest, info, hook, enabled, metadata, update_release_data, body_dependency_usage };
 }
 
 async function getSuccess(inp: {api: OctokitApi, repoData: Repo}): Promise<boolean> {
@@ -200,8 +201,8 @@ async function getChanges(inp: {api: OctokitApi, prevRelease: PreviousRelease, r
     }
 }
 
-async function getReleaseBody(inp: {repoData: Repo, changes: Inputs.Change[]}): Promise<string> {
-    const { repoData, changes } = inp;
+async function getReleaseBody(inp: {repoData: Repo, changes: Inputs.Change[], usageExamples: Inputs.Release['body_dependency_usage'], tag: Inputs.Tag}): Promise<string> {
+    const { repoData, changes, usageExamples, tag } = inp;
 
     const bodyPath = core.getInput('releaseBodyPath');
 
@@ -210,13 +211,15 @@ async function getReleaseBody(inp: {repoData: Repo, changes: Inputs.Change[]}): 
         if (changes.length === 0) {
             return '';
         }
+
+        let body = '';
         
         const { owner, repo, url } = repoData;
         const firstCommit = changes[0].commit.slice(0, 7);
         const lastCommit = changes[changes.length - 1].commit.slice(0, 7);
         const diffURL = `${url}/${owner}/${repo}/compare/${firstCommit}^...${lastCommit}`;
 
-        let changelog = `## Changes: [\`${firstCommit}...${lastCommit}\`](${diffURL})${os.EOL}`;
+        body += `## Changes: [\`${firstCommit}...${lastCommit}\`](${diffURL})${os.EOL}`;
 
         const changeLimit = core.getInput('releaseChangeLimit');
         let truncatedChanges = 0;
@@ -241,14 +244,97 @@ async function getReleaseBody(inp: {repoData: Repo, changes: Inputs.Change[]}): 
                     break;
             }
             const sha = change.commit.slice(0, 7);
-            changelog += `- ${markdownEscape(change.summary)} ([\`${sha}\`](${url}/${owner}/${repo}/commit/${sha})) by ${markdownEscape(authors)}${os.EOL}`;
+            body += `- ${markdownEscape(change.summary)} ([\`${sha}\`](${url}/${owner}/${repo}/commit/${sha})) by ${markdownEscape(authors)}${os.EOL}`;
         }
 
         if (truncatedChanges > 0) {
-            changelog += `... and ${truncatedChanges} more${os.EOL}`;
+            body += `... and ${truncatedChanges} more${os.EOL}`;
         }
 
-        return changelog;
+        if (usageExamples.type !== 'none') {
+            switch (usageExamples.type) {
+                case 'java':
+                    if (!usageExamples.java) break;
+                    if (!usageExamples.java.group_id || !usageExamples.java.artifact_id) break;
+
+                    body += `## Usage${os.EOL}`;
+
+                    let { group_id, artifact_id, version: javaVersion, maven_repo } = usageExamples.java;
+
+                    if (!javaVersion) {
+                        javaVersion = tag.base;
+                    };
+
+                    body += `### Gradle (Kotlin DSL)${os.EOL}`;
+                    body += '```kotlin' + os.EOL;
+                    if (maven_repo) {
+                        body += `repositories {` + os.EOL;
+                        body += `    maven("${maven_repo}")` + os.EOL;
+                        body += `}` + os.EOL;
+                        body += os.EOL;
+                    }
+                    body += `implementation("${group_id}:${artifact_id}:${javaVersion}")` + os.EOL;
+                    body += '```' + os.EOL;
+
+                    body += `### Gradle (Groovy)${os.EOL}`;
+                    body += '```groovy' + os.EOL;
+                    if (maven_repo) {
+                        body += `repositories {` + os.EOL;
+                        body += `    maven { url "${maven_repo}" }` + os.EOL;
+                        body += `}` + os.EOL;
+                        body += os.EOL;
+                    }
+                    body += `implementation '${group_id}:${artifact_id}:${javaVersion}'` + os.EOL;
+                    body += '```' + os.EOL;
+
+                    body += `### Maven${os.EOL}`;
+                    body += '```xml' + os.EOL;
+                    if (maven_repo) {
+                        body += `<repositories>` + os.EOL;
+                        body += `    <repository>` + os.EOL;
+                        body += `        <id>${repoData.owner}</id>` + os.EOL;
+                        body += `        <url>${maven_repo}</url>` + os.EOL;
+                        body += `    </repository>` + os.EOL;
+                        body += `</repositories>` + os.EOL;
+                        body += os.EOL;
+                    }
+                    body += `<dependency>` + os.EOL;
+                    body += `    <groupId>${group_id}</groupId>` + os.EOL;
+                    body += `    <artifactId>${artifact_id}</artifactId>` + os.EOL;
+                    body += `    <version>${javaVersion}</version>` + os.EOL;
+                    body += `</dependency>` + os.EOL;
+                    body += '```' + os.EOL;
+
+                    break;
+                case 'nodejs':
+                    if (!usageExamples.nodejs) break;
+                    if (!usageExamples.nodejs.package || !usageExamples.nodejs.var_name) break;
+
+                    body += `## Usage${os.EOL}`;
+
+                    let { package: packageName, version: nodejsVersion, var_name } = usageExamples.nodejs;
+
+                    if (!nodejsVersion) {
+                        nodejsVersion = tag.base;
+                    };
+
+                    body += `### Install${os.EOL}`;
+                    body += '```bash' + os.EOL;
+                    body += `npm install ${packageName}@${nodejsVersion}` + os.EOL;
+                    body += `yarn add ${packageName}@${nodejsVersion}` + os.EOL;
+                    body += `pnpm add ${packageName}@${nodejsVersion}` + os.EOL;
+                    body += '```' + os.EOL;
+
+                    body += `### Import${os.EOL}`;
+                    body += '```js' + os.EOL;
+                    body += `const ${var_name} = require('${packageName}');` + os.EOL;
+                    body += `import ${var_name} from '${packageName}';` + os.EOL;
+                    body += '```' + os.EOL;
+                    break;
+            }
+        }
+
+        return body;
     }
 
     return fs.readFileSync(bodyPath, { encoding: 'utf-8' });
@@ -318,4 +404,35 @@ function getMakeLatest(inp: {prerelease: boolean, success: boolean}): "true" | "
     }
 
     return make_latest;
+}
+
+function getBodyDependencyUsage(): Inputs.Release['body_dependency_usage'] {
+    const dependency_usage_examples = core.getInput('releaseBodyDependencyUsage');
+
+    switch (dependency_usage_examples) {
+        case "java":
+            return {
+                type: "java",
+                java: {
+                    group_id: core.getInput('releaseBodyDependencyJavaArtifactId') || undefined,
+                    artifact_id: core.getInput('releaseBodyDependencyJavaGroupId') || undefined,
+                    version: core.getInput('releaseBodyDependencyJavaVersion') || undefined,
+                    maven_repo: core.getInput('releaseBodyDependencyJavaMavenRepo') || undefined
+                }
+            }
+        case "nodejs":
+            return {
+                type: "nodejs",
+                nodejs: {
+                    package: core.getInput('releaseBodyDependencyNodejsPackage') || undefined,
+                    version: core.getInput('releaseBodyDependencyNodejsVersion') || undefined,
+                    var_name: core.getInput('releaseBodyDependencyNodejsVarName') || undefined
+                }
+            }
+        case "none":
+        default:
+            return {
+                type: "none"
+            };
+    }
 }

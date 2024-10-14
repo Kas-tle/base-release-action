@@ -36,30 +36,38 @@ on:
 
 ### Inputs
 
-| Input                | Description                                                                                                                                            | Default | Required |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------- | -------- |
-| `appID`              | ID of the GitHub App to manage the release system.                                                                                                     |         | `true`   |
-| `appPrivateKey`      | Private key of the GitHub App to manage the release system.                                                                                            |         | `true`   |
-| `files`              | Comma-separated or newline-separated list of release files with optional "label:" prefix.                                                              |         | `true`   |
-| `discordWebhook`     | Discord webhook to post the release to.                                                                                                                | `none`  | `false`  |
-| `discussionCategory` | The category to use for the discussion. Defaults to "none" if not specified.                                                                           | `none`  | `false`  |
-| `draftRelease`       | Whether or not the release should be a draft. Defaults to false if not specified.                                                                      | `false` | `false`  |
-| `ghApiUrl`           | The GitHub API URL to use. Defaults to the api. plus the repo domain if not specified.                                                                 | `auto`  | `false`  |
-| `ghReleaseNotes`     | Whether or not to let GitHub auto-generate its release notes. Defaults to false if not specified.                                                      | `false` | `false`  |
-| `includeReleaseInfo` | Whether or not to include the asset hashes in a release.json file. Defaults to true if not specified.                                                  | `true`  | `false`  |
-| `lastCommit`         | The last commit hash to use for the release. Defaults to the commit that triggered the workflow if not specified.                                      | `auto`  | `false`  |
-| `latestRelease`      | Whether or not the release should be marked as the latest release. Defaults to auto if not specified, which will be true unless this is a pre-release. | `auto`  | `false`  |
-| `preRelease`         | Whether or not the release is a pre-release. Inferred by the branch if not specified.                                                                  | `auto`  | `false`  |
-| `releaseBody`        | A file containing the body of the release. Defaults to the commit changelog if not specified.                                                          | `auto`  | `false`  |
-| `releaseChangeLimit` | The maximum number of changes to include in the release body. Defaults to 15 if not specified. Set to -1 to include all changes.                       | `15`    | `false`  |
-| `releaseEnabled`     | Whether or not the release should be created. Defaults to true if not specified.                                                                       | `true`  | `false`  |
-| `releaseName`        | The title of the release. Defaults to "Build ${tagBase} (${branch})" if not specified.                                                                 | `auto`  | `false`  |
-| `saveMetadata`       | Whether or not to save the offline release metadata to metadata.json. Defaults to false if not specified.                                              | `false` | `false`  |
-| `tagBase`            | The tag base to use for the release. Auto increment from the last tag will be used if not specified.                                                   | `auto`  | `false`  |
-| `tagIncrement`       | If the build tag should be incremented. Defaults to true if not specified and tag is a number.                                                         | `true`  | `false`  |
-| `tagPrefix`          | The prefix to use for the tag. Defaults to the branch if not specified.                                                                                | `auto`  | `false`  |
-| `tagSeparator`       | The separator to use between the tag prefix and the tag base. Defaults to "-" if not specified.                                                        | `-`     | `false`  |
-| `updateReleaseData`  | Whether or not to update the release data in repository variable storage. Defaults to true if not specified                                            | `true`  | `false`  | 
+| Input                                 | Description                                                                                                                                            | Default | Required |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------- | -------- |
+| `appID`                               | ID of the GitHub App to manage the release system.                                                                                                     |         | `true`   |
+| `appPrivateKey`                       | Private key of the GitHub App to manage the release system.                                                                                            |         | `true`   |
+| `files`                               | Comma-separated or newline-separated list of release files with optional "label:" prefix.                                                              |         | `true`   |
+| `discordWebhook`                      | Discord webhook to post the release to.                                                                                                                | `none`  | `false`  |
+| `discussionCategory`                  | The category to use for the discussion. Defaults to "none" if not specified.                                                                           | `none`  | `false`  |
+| `draftRelease`                        | Whether or not the release should be a draft. Defaults to false if not specified.                                                                      | `false` | `false`  |
+| `ghApiUrl`                            | The GitHub API URL to use. Defaults to the api. plus the repo domain if not specified.                                                                 | `auto`  | `false`  |
+| `ghReleaseNotes`                      | Whether or not to let GitHub auto-generate its release notes. Defaults to false if not specified.                                                      | `false` | `false`  |
+| `includeReleaseInfo`                  | Whether or not to include the asset hashes in a release.json file. Defaults to true if not specified.                                                  | `true`  | `false`  |
+| `lastCommit`                          | The last commit hash to use for the release. Defaults to the commit that triggered the workflow if not specified.                                      | `auto`  | `false`  |
+| `latestRelease`                       | Whether or not the release should be marked as the latest release. Defaults to auto if not specified, which will be true unless this is a pre-release. | `auto`  | `false`  |
+| `preRelease`                          | Whether or not the release is a pre-release. Inferred by the branch if not specified.                                                                  | `auto`  | `false`  |
+| `releaseBody`                         | A file containing the body of the release. Defaults to the commit changelog if not specified.                                                          | `auto`  | `false`  |
+| `releaseBodyDependencyUsage`          | Whether or not to include the dependency usage in the release body. Defaults to "none" if not specified. Currently accepts "java" or "nodejs".         | `none`  | `false`  |
+| `releaseBodyDependencyJavaArtifactId` | The artifact ID to use for the Java dependency usage.                                                                                                  | ``      | `false`  |
+| `releaseBodyDependencyJavaGroupId`    | The group ID to use for the Java dependency usage.                                                                                                     | ``      | `false`  |
+| `releaseBodyDependencyJavaMavenRepo`  | The Maven repo to use for Java dependency usage.                                                                                                       | ``      | `false`  |
+| `releaseBodyDependencyJavaVersion`    | The version to use for Java dependency usage.                                                                                                          | ``      | `false`  |
+| `releaseBodyDependencyNodejsPackage`  | The package to use for Node.js dependency usage.                                                                                                       | ``      | `false`  |
+| `releaseBodyDependencyNodejsVarName`  | The variable name to use for Node.js dependency usage.                                                                                                 | ``      | `false`  |
+| `releaseBodyDependencyNodejsVersion`  | The version to use for Node.js dependency usage.                                                                                                       | ``      | `false`  |
+| `releaseChangeLimit`                  | The maximum number of changes to include in the release body. Defaults to 15 if not specified. Set to -1 to include all changes.                       | `15`    | `false`  |
+| `releaseEnabled`                      | Whether or not the release should be created. Defaults to true if not specified.                                                                       | `true`  | `false`  |
+| `releaseName`                         | The title of the release. Defaults to "Build ${tagBase} (${branch})" if not specified.                                                                 | `auto`  | `false`  |
+| `saveMetadata`                        | Whether or not to save the offline release metadata to metadata.json. Defaults to false if not specified.                                              | `false` | `false`  |
+| `tagBase`                             | The tag base to use for the release. Auto increment from the last tag will be used if not specified.                                                   | `auto`  | `false`  |
+| `tagIncrement`                        | If the build tag should be incremented. Defaults to true if not specified and tag is a number.                                                         | `true`  | `false`  |
+| `tagPrefix`                           | The prefix to use for the tag. Defaults to the branch if not specified.                                                                                | `auto`  | `false`  |
+| `tagSeparator`                        | The separator to use between the tag prefix and the tag base. Defaults to "-" if not specified.                                                        | `-`     | `false`  |
+| `updateReleaseData`                   | Whether or not to update the release data in repository variable storage. Defaults to true if not specified                                            | `true`  | `false`  | 
 
 ### Outputs
 
