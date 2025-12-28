@@ -48,7 +48,7 @@ export async function sendWebhook(inp: {inputs: Inputs, api: OctokitApi, repoDat
         .setColor(color)
         .setTitle(inputs.release.name)
         .setUrl(updatedRelease.data.html_url)
-        .setDescription(inputs.release.body)
+        .setDescription(inputs.release.body.substring(0, 4000))
         .addField({ name: 'Assets', value: assets, inline: false })
         .addField({ name: '', value: `:watch: <t:${time}:R>`, inline: true })
         .addField({ name: '', value: `:label: [${tag}](${url}/${owner}/${repo}/tree/${tag})`, inline: true })
@@ -61,7 +61,7 @@ export async function sendWebhook(inp: {inputs: Inputs, api: OctokitApi, repoDat
     }
 
     try {
-        new Webhook(inputs.release.hook)
+        await new Webhook(inputs.release.hook)
             .setUsername('GitHub Release Action')
             .setAvatarUrl('https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png')
             .addEmbed(embed)
